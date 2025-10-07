@@ -9,6 +9,8 @@ import com.ABN.NotificationSystem.Service.AlertService;
 import com.ABN.NotificationSystem.utility.AlertMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import com.ABN.NotificationSystem.Service.ReminderService;
+import org.springframework.http.ResponseEntity;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -20,6 +22,8 @@ public class AdminController {
     @Autowired
     private AlertService alertService;
 
+    @Autowired
+    private ReminderService reminderService;
 
     @PostMapping("/alerts")
     public AlertResponse createAlert(@RequestBody AlertRequest request) {
@@ -75,5 +79,35 @@ public class AdminController {
         return alertService.getAlertsByVisibility(scope).stream()
                 .map(AlertMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Manually trigger reminder process for all active alerts
+     * Useful for testing without waiting for scheduled run
+     */
+    @PostMapping("/reminders/trigger")
+    public ResponseEntity<String> triggerReminders() {
+        try {
+            reminderService.sendReminders();
+            return ResponseEntity.ok("Reminder process triggered successfully");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body("Error triggering reminders: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Manually trigger reminder for a specific alert
+     * Useful for testing specific alert delivery
+     */
+    @PostMapping("/reminders/trigger/{alertId}")
+    public ResponseEntity<String> triggerReminderForAlert(@PathVariable Long alertId) {
+        try {
+            reminderService.triggerManualReminder(alertId);
+            return ResponseEntity.ok("Reminder triggered for alert: " + alertId);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body("Error triggering reminder: " + e.getMessage());
+        }
     }
 }
